@@ -74,9 +74,12 @@ export default function LandingPage() {
                 Terminal de Acesso Seguro
             </div>
 
-            {/* Decoração Lateral (Linhas de Grade) */}
+            {/* Decoração Lateral (Linhas de Grade) - CORRIGIDO AQUI */}
             <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none"
-                 style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', size: '40px 40px', backgroundSize: '40px 40px' }}>
+                 style={{
+                     backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)',
+                     backgroundSize: '40px 40px'
+                 }}>
             </div>
         </div>
     )
