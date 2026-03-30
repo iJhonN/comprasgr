@@ -1,65 +1,83 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+import { useEffect, useState } from 'react'
+import { auth } from '@/lib/firebase'
+import { onAuthStateChanged } from 'firebase/auth'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Gauge, ArrowRight, LayoutDashboard, ShieldCheck } from 'lucide-react'
+
+export default function LandingPage() {
+    const [user, setUser] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser)
+            setLoading(false)
+        })
+        return () => unsubscribe()
+    }, [])
+
+    if (loading) return (
+        <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+            <div className="w-12 h-12 border-4 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+    )
+
+    return (
+        <div className="min-h-screen bg-[#0f172a] font-sans flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
+
+            {/* Efeito de Iluminação de Fundo (Ambiente de Garagem) */}
+            <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-orange-600/5 blur-[150px] rounded-full"></div>
+            <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-600/5 blur-[150px] rounded-full"></div>
+
+            {/* Logo / Ícone com Glow */}
+            <div className="bg-orange-600 p-6 rounded-[2rem] shadow-[0_0_50px_rgba(234,88,12,0.3)] mb-8 transform hover:scale-105 transition-all duration-500 cursor-default border border-orange-500/20 relative z-10">
+                <Gauge className="text-white w-14 h-14" />
+            </div>
+
+            {/* Texto Principal */}
+            <div className="relative z-10">
+                <h1 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tighter uppercase italic">
+                    Financeiro <span className="text-orange-500 not-italic">GR</span>
+                </h1>
+                <p className="text-slate-400 text-lg md:text-xl max-w-lg mb-12 leading-relaxed font-medium mx-auto">
+                    Gestão inteligente de estoque e compras de <span className="text-slate-200 border-b-2 border-orange-600/50">peças automotivas</span> em tempo real.
+                </p>
+            </div>
+
+            {/* Botões Dinâmicos */}
+            <div className="flex flex-col sm:flex-row gap-5 w-full max-w-xs sm:max-w-none justify-center relative z-10">
+                {user ? (
+                    <Link
+                        href="/dashboard"
+                        className="flex items-center justify-center gap-3 bg-white text-slate-950 px-10 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-orange-500 hover:text-white transition-all shadow-2xl active:scale-95"
+                    >
+                        <LayoutDashboard size={22} />
+                        Acessar Painel
+                    </Link>
+                ) : (
+                    <Link
+                        href="/login"
+                        className="flex items-center justify-center gap-3 bg-orange-600 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-orange-500 transition-all shadow-[0_10px_40px_rgba(234,88,12,0.3)] active:scale-95"
+                    >
+                        Entrar no Sistema
+                        <ArrowRight size={22} />
+                    </Link>
+                )}
+            </div>
+
+            {/* Rodapé de Status */}
+            <div className="absolute bottom-10 flex items-center gap-3 text-slate-600 text-[10px] font-black uppercase tracking-[0.4em]">
+                <ShieldCheck size={14} className="text-orange-900/50" />
+                Terminal de Acesso Seguro
+            </div>
+
+            {/* Decoração Lateral (Linhas de Grade) */}
+            <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none"
+                 style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', size: '40px 40px', backgroundSize: '40px 40px' }}>
+            </div>
         </div>
-      </main>
-    </div>
-  );
+    )
 }
