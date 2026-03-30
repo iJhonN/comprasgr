@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { db } from '@/lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, PlusCircle, Loader2, Check, Calendar, Package, FileText } from 'lucide-react'
+import { ArrowLeft, PlusCircle, Loader2, Check, Calendar, Package, FileText, ClipboardList } from 'lucide-react'
 import Link from 'next/link'
 
 export default function NovoItem() {
@@ -12,6 +12,7 @@ export default function NovoItem() {
     const [saving, setSaving] = useState(false)
     const [form, setForm] = useState({
         produto: '',
+        os: '', // Novo campo OS
         obs: '',
         valor: '',
         quantidade: '1',
@@ -23,21 +24,24 @@ export default function NovoItem() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!form.produto || !form.valor) return
+        // Apenas produto e data são essenciais agora
+        if (!form.produto || !form.dataCompra) return
 
         setSaving(true)
 
         try {
             await addDoc(collection(db, 'compras'), {
                 produto: form.produto,
-                obs: form.obs,
-                valor: parseFloat(form.valor.replace(',', '.')),
-                quantidade: parseInt(form.quantidade) || 1,
+                os: form.os || "", // Salva a OS (opcional)
+                obs: form.obs || "",
+                // Converte para número apenas se houver valor, senão salva 0
+                valor: form.valor ? parseFloat(form.valor.replace(',', '.')) : 0,
+                quantidade: parseInt(form.quantidade) || 0,
                 dataCompra: form.dataCompra,
                 referencias: {
-                    ref1: form.ref1,
-                    ref2: form.ref2,
-                    ref3: form.ref3
+                    ref1: form.ref1 || "",
+                    ref2: form.ref2 || "",
+                    ref3: form.ref3 || ""
                 },
                 createdAt: serverTimestamp()
             })
@@ -63,68 +67,76 @@ export default function NovoItem() {
                         <div className="bg-orange-600 p-2 rounded-xl shadow-lg shadow-orange-900/20">
                             <PlusCircle className="text-white" size={28} />
                         </div>
-                        <h1 className="text-2xl font-black text-white tracking-tight">Novo Registro de Peça</h1>
+                        <h1 className="text-2xl font-black text-white tracking-tight italic">Novo Registro</h1>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Produto */}
-                        <div>
-                            <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">Nome do Produto / Item</label>
-                            <input
-                                type="text" required placeholder="Ex: Amortecedor Dianteiro"
-                                className="w-full px-4 py-4 rounded-2xl bg-[#0f172a] border border-slate-700 text-white placeholder:text-slate-600 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all font-medium text-lg"
-                                value={form.produto}
-                                onChange={e => setForm({...form, produto: e.target.value})}
-                            />
+                        {/* Produto e OS */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="md:col-span-2">
+                                <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">Peça / Produto</label>
+                                <input
+                                    type="text" required placeholder="Ex: Filtro de Óleo"
+                                    className="w-full px-4 py-4 rounded-2xl bg-[#0f172a] border border-slate-700 text-white focus:border-orange-500 outline-none transition-all font-medium"
+                                    value={form.produto}
+                                    onChange={e => setForm({...form, produto: e.target.value})}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-blue-500 mb-2 uppercase tracking-[0.2em]">Nº da OS</label>
+                                <div className="relative">
+                                    <ClipboardList className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-900/50" size={18} />
+                                    <input
+                                        type="text" placeholder="Opcional"
+                                        className="w-full pl-12 pr-4 py-4 rounded-2xl bg-[#0f172a] border border-blue-900/30 text-blue-400 focus:border-blue-500 outline-none transition-all font-bold font-mono"
+                                        value={form.os}
+                                        onChange={e => setForm({...form, os: e.target.value})}
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         {/* Quantidade, Valor e Data */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">Qtd.</label>
-                                <div className="relative">
-                                    <Package className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
-                                    <input
-                                        type="number" required min="1"
-                                        className="w-full pl-12 pr-4 py-4 rounded-2xl bg-[#0f172a] border border-slate-700 text-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all font-bold"
-                                        value={form.quantidade}
-                                        onChange={e => setForm({...form, quantidade: e.target.value})}
-                                    />
-                                </div>
+                                <input
+                                    type="number" min="0"
+                                    className="w-full px-4 py-4 rounded-2xl bg-[#0f172a] border border-slate-700 text-white focus:border-orange-500 outline-none font-bold text-center"
+                                    value={form.quantidade}
+                                    onChange={e => setForm({...form, quantidade: e.target.value})}
+                                />
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">Valor Unit. (R$)</label>
                                 <input
-                                    type="text" required placeholder="0,00"
-                                    className="w-full px-4 py-4 rounded-2xl bg-[#0f172a] border border-slate-700 text-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all font-mono font-bold"
+                                    type="text" placeholder="0,00"
+                                    className="w-full px-4 py-4 rounded-2xl bg-[#0f172a] border border-slate-700 text-orange-500 focus:border-orange-500 outline-none font-mono font-bold text-right"
                                     value={form.valor}
                                     onChange={e => setForm({...form, valor: e.target.value})}
                                 />
                             </div>
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">Data</label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={18} />
-                                    <input
-                                        type="date" required
-                                        className="w-full pl-12 pr-4 py-4 rounded-2xl bg-[#0f172a] border border-slate-700 text-white focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all font-medium color-scheme-dark"
-                                        style={{ colorScheme: 'dark' }}
-                                        value={form.dataCompra}
-                                        onChange={e => setForm({...form, dataCompra: e.target.value})}
-                                    />
-                                </div>
+                                <input
+                                    type="date" required
+                                    style={{ colorScheme: 'dark' }}
+                                    className="w-full px-4 py-4 rounded-2xl bg-[#0f172a] border border-slate-700 text-white focus:border-orange-500 outline-none transition-all"
+                                    value={form.dataCompra}
+                                    onChange={e => setForm({...form, dataCompra: e.target.value})}
+                                />
                             </div>
                         </div>
 
-                        {/* Campo OBS */}
+                        {/* Observações */}
                         <div>
-                            <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">Observações (OBS)</label>
+                            <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">Observações (Opcional)</label>
                             <div className="relative">
                                 <FileText className="absolute left-4 top-4 text-slate-600" size={18} />
                                 <textarea
-                                    placeholder="Detalhes adicionais, fornecedor ou aplicação da peça..."
-                                    rows={3}
-                                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-[#0f172a] border border-slate-700 text-white placeholder:text-slate-600 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all font-medium resize-none"
+                                    placeholder="Detalhes adicionais ou aplicação..."
+                                    rows={2}
+                                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-[#0f172a] border border-slate-700 text-white focus:border-orange-500 outline-none transition-all italic text-slate-400 resize-none"
                                     value={form.obs}
                                     onChange={e => setForm({...form, obs: e.target.value})}
                                 />
@@ -134,37 +146,22 @@ export default function NovoItem() {
                         {/* Referências */}
                         <div className="p-1 bg-[#161e2e] rounded-3xl border border-slate-800">
                             <div className="px-4 py-3 border-b border-slate-800 text-center">
-                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Referências de Estoque</p>
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Referências (Opcional)</p>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4">
-                                <input
-                                    type="text" placeholder="REF 1"
-                                    className="w-full px-4 py-3 rounded-xl bg-[#0f172a] border border-slate-700 text-white text-sm focus:border-orange-500 outline-none transition-all shadow-inner"
-                                    value={form.ref1}
-                                    onChange={e => setForm({...form, ref1: e.target.value})}
-                                />
-                                <input
-                                    type="text" placeholder="REF 2"
-                                    className="w-full px-4 py-3 rounded-xl bg-[#0f172a] border border-slate-700 text-white text-sm focus:border-orange-500 outline-none transition-all shadow-inner"
-                                    value={form.ref2}
-                                    onChange={e => setForm({...form, ref2: e.target.value})}
-                                />
-                                <input
-                                    type="text" placeholder="REF 3"
-                                    className="w-full px-4 py-3 rounded-xl bg-[#0f172a] border border-slate-700 text-white text-sm focus:border-orange-500 outline-none transition-all shadow-inner"
-                                    value={form.ref3}
-                                    onChange={e => setForm({...form, ref3: e.target.value})}
-                                />
+                                <input type="text" placeholder="REF 1" className="bg-[#0f172a] border border-slate-700 p-3 rounded-xl text-center text-sm" value={form.ref1} onChange={e => setForm({...form, ref1: e.target.value})} />
+                                <input type="text" placeholder="REF 2" className="bg-[#0f172a] border border-slate-700 p-3 rounded-xl text-center text-sm" value={form.ref2} onChange={e => setForm({...form, ref2: e.target.value})} />
+                                <input type="text" placeholder="REF 3" className="bg-[#0f172a] border border-slate-700 p-3 rounded-xl text-center text-sm" value={form.ref3} onChange={e => setForm({...form, ref3: e.target.value})} />
                             </div>
                         </div>
 
                         <button
                             type="submit"
                             disabled={saving}
-                            className="w-full bg-orange-600 text-white py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] hover:bg-orange-500 transition-all shadow-xl shadow-orange-900/20 flex items-center justify-center gap-3 mt-4 disabled:opacity-50 active:scale-[0.98]"
+                            className="w-full bg-orange-600 text-white py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] hover:bg-orange-500 transition-all shadow-xl shadow-orange-900/20 flex items-center justify-center gap-3 disabled:opacity-50"
                         >
                             {saving ? <Loader2 className="animate-spin" /> : <Check size={20} />}
-                            Salvar Peça no Sistema
+                            {saving ? 'Salvando...' : 'Salvar Peça no Sistema'}
                         </button>
                     </form>
                 </div>
