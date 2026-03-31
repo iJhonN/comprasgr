@@ -23,7 +23,6 @@ function PlanilhaContent() {
 
     const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
 
-    // Configuração de Estilo por Status
     const statusConfig: any = {
         'Aguardando': { color: 'text-amber-500', bg: 'bg-amber-500/10', icon: <Clock size={14} /> },
         'Comprado': { color: 'text-blue-500', bg: 'bg-blue-500/10', icon: <ShoppingCart size={14} /> },
@@ -58,7 +57,7 @@ function PlanilhaContent() {
     const abrirEdicao = (item: any) => {
         setItemEmEdicao({
             ...item,
-            status: item.status || 'Aguardando' // Fallback para itens antigos
+            status: item.status || 'Aguardando'
         })
         setMenuAberto(true)
     }
@@ -66,7 +65,6 @@ function PlanilhaContent() {
     const handleSalvar = async (e: React.FormEvent) => {
         e.preventDefault()
         setSalvando(true)
-
         const usuarioAtual = auth.currentUser?.email || 'Usuário Desconhecido';
         const timestamp = new Date().toISOString();
 
@@ -90,11 +88,9 @@ function PlanilhaContent() {
             } else {
                 await addDoc(collection(db, 'compras'), payload)
             }
-
             setMenuAberto(false)
             setItemEmEdicao(null)
         } catch (error) {
-            console.error("Erro ao salvar:", error)
             alert("Erro ao salvar operação")
         } finally {
             setSalvando(false)
@@ -103,7 +99,7 @@ function PlanilhaContent() {
 
     const handleExcluir = async () => {
         if (!itemEmEdicao.id) return;
-        const confirmar = confirm(`Tem certeza que deseja excluir "${itemEmEdicao.produto}"?`);
+        const confirmar = confirm(`Tem certeza que deseja excluir "${itemEmEmEdicao.produto}"?`);
         if (confirmar) {
             setSalvando(true);
             try {
@@ -143,7 +139,6 @@ function PlanilhaContent() {
     return (
         <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans relative overflow-x-hidden flex flex-col">
             <header className="bg-[#1e293b] border-b border-slate-800 p-4 sticky top-0 z-30 shadow-2xl">
-                {/* ... Header idêntico ao seu ... */}
                 <div className="max-w-full mx-auto flex flex-col xl:flex-row justify-between items-center gap-4">
                     <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto">
                         <div className="flex items-center justify-between w-full md:w-auto gap-4">
@@ -192,7 +187,6 @@ function PlanilhaContent() {
                             <th className="p-4 w-32">Unitário</th>
                             <th className="p-4 w-32">Total</th>
                             <th className="p-4 text-left">Observações</th>
-                            <th className="p-4 w-20">Ações</th>
                         </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/50">
@@ -203,9 +197,12 @@ function PlanilhaContent() {
                             const currentStatus = item.status || 'Aguardando';
 
                             return (
-                                <tr key={item.id} className="hover:bg-orange-500/[0.03] transition-colors group">
+                                <tr
+                                    key={item.id}
+                                    onClick={() => abrirEdicao(item)}
+                                    className="hover:bg-orange-500/[0.05] cursor-pointer transition-all group active:bg-orange-500/[0.1]"
+                                >
                                     <td className="p-4 font-bold text-slate-600">{semana}</td>
-                                    {/* COLUNA STATUS DINÂMICA */}
                                     <td className="p-4">
                                         <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${statusConfig[currentStatus].bg} ${statusConfig[currentStatus].color}`}>
                                             {statusConfig[currentStatus].icon}
@@ -214,7 +211,7 @@ function PlanilhaContent() {
                                     </td>
                                     <td className="p-4 font-mono font-bold text-blue-400 bg-blue-500/5">{item.os || '-'}</td>
                                     <td className="p-4 text-left">
-                                        <div className={`font-black uppercase leading-tight transition-colors ${currentStatus === 'Concluído' ? 'text-slate-500' : 'text-white'}`}>
+                                        <div className={`font-black uppercase leading-tight transition-colors group-hover:text-orange-500 ${currentStatus === 'Concluído' ? 'text-slate-500' : 'text-white'}`}>
                                             {item.produto}
                                         </div>
                                         <div className="text-[9px] text-slate-500 font-mono mt-0.5">{dataObj.toLocaleDateString('pt-BR')}</div>
@@ -226,7 +223,6 @@ function PlanilhaContent() {
                                     <td className="p-4 text-right font-mono text-slate-500">R$ {Number(item.valor || 0).toFixed(2)}</td>
                                     <td className="p-4 text-right font-black text-orange-500 font-mono italic bg-orange-500/[0.02]">R$ {(Number(item.valor || 0) * Number(item.quantidade || 0)).toFixed(2)}</td>
                                     <td className="p-4 text-left text-[10px] text-slate-500 italic max-w-[200px] truncate">{item.obs || '-'}</td>
-                                    <td className="p-4"><button onClick={() => abrirEdicao(item)} className="p-2.5 bg-slate-800 text-orange-500 rounded-lg hover:bg-orange-600 hover:text-white transition-all"><Edit3 size={16} /></button></td>
                                 </tr>
                             )
                         })}
@@ -248,9 +244,7 @@ function PlanilhaContent() {
                             </div>
                             <button onClick={() => setMenuAberto(false)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400"><X /></button>
                         </div>
-
                         <form onSubmit={handleSalvar} className="space-y-4 text-sm">
-                            {/* SELETOR DE STATUS */}
                             <div className="bg-[#0f172a] p-1.5 rounded-2xl border border-slate-800 grid grid-cols-2 gap-1.5">
                                 {Object.keys(statusConfig).map((status) => (
                                     <button
@@ -268,7 +262,6 @@ function PlanilhaContent() {
                                     </button>
                                 ))}
                             </div>
-
                             <div className="bg-[#0f172a] p-3 rounded-xl border border-slate-800">
                                 <label className="text-[9px] font-black text-slate-500 uppercase block mb-1 tracking-widest">Peça / Produto</label>
                                 <input required type="text" value={itemEmEdicao.produto} onChange={(e) => setItemEmEdicao({...itemEmEdicao, produto: e.target.value})} className="w-full bg-transparent text-white font-bold outline-none" />
