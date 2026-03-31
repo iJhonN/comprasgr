@@ -2,8 +2,8 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { db, auth } from '@/lib/firebase'
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc } from 'firebase/firestore'
-import { Table as TableIcon, ArrowLeft, Edit3, X, Save, Loader2, FileText, Hash, Plus, ClipboardList, Search } from 'lucide-react'
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore'
+import { Table as TableIcon, ArrowLeft, Edit3, X, Save, Loader2, FileText, Hash, Plus, ClipboardList, Search, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
@@ -55,7 +55,6 @@ function PlanilhaContent() {
         e.preventDefault()
         setSalvando(true)
 
-        // Captura o usuário no momento exato do clique
         const usuarioAtual = auth.currentUser?.email || 'Usuário Desconhecido';
         const timestamp = new Date().toISOString();
 
@@ -68,8 +67,6 @@ function PlanilhaContent() {
                 dataCompra: itemEmEdicao.dataCompra,
                 obs: itemEmEdicao.obs || "",
                 referencias: itemEmEdicao.referencias || { ref1: "", ref2: "", ref3: "" },
-
-                // CAMPOS DE RASTREIO (LOGS)
                 atualizadoPor: usuarioAtual,
                 atualizadoEm: timestamp,
                 tipoAcao: itemEmEdicao.id ? 'EDIÇÃO' : 'CADASTRO'
@@ -88,6 +85,27 @@ function PlanilhaContent() {
             alert("Erro ao salvar operação")
         } finally {
             setSalvando(false)
+        }
+    }
+
+    // NOVA FUNÇÃO PARA EXCLUIR
+    const handleExcluir = async () => {
+        if (!itemEmEdicao.id) return;
+
+        const confirmar = confirm(`Tem certeza que deseja excluir "${itemEmEdicao.produto}"? Esta ação não pode ser desfeita.`);
+
+        if (confirmar) {
+            setSalvando(true);
+            try {
+                await deleteDoc(doc(db, 'compras', itemEmEdicao.id));
+                setMenuAberto(false);
+                setItemEmEdicao(null);
+            } catch (error) {
+                console.error("Erro ao excluir:", error);
+                alert("Erro ao excluir item.");
+            } finally {
+                setSalvando(false);
+            }
         }
     }
 
@@ -200,7 +218,20 @@ function PlanilhaContent() {
                     <div className="absolute inset-0 bg-[#0f172a]/80 backdrop-blur-sm" onClick={() => setMenuAberto(false)} />
                     <div className="relative w-full max-w-md bg-[#1e293b] h-full shadow-2xl p-6 overflow-y-auto border-l border-slate-800">
                         <div className="flex justify-between items-center mb-8">
-                            <h2 className="text-xl font-black uppercase italic text-white">{itemEmEdicao.id ? 'Ajustar Peça' : 'Nova Compra'}</h2>
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-xl font-black uppercase italic text-white">{itemEmEdicao.id ? 'Ajustar Peça' : 'Nova Compra'}</h2>
+                                {/* BOTÃO EXCLUIR (Só aparece se for edição) */}
+                                {itemEmEdicao.id && (
+                                    <button
+                                        type="button"
+                                        onClick={handleExcluir}
+                                        className="p-2 text-slate-500 hover:text-red-500 transition-colors"
+                                        title="Excluir item"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
+                                )}
+                            </div>
                             <button onClick={() => setMenuAberto(false)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400"><X /></button>
                         </div>
                         <form onSubmit={handleSalvar} className="space-y-4 text-sm">

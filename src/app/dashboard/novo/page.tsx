@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { db } from '@/lib/firebase'
+import { db, auth } from '@/lib/firebase' // Adicionado auth aqui
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, PlusCircle, Loader2, Check, Calendar, Package, FileText, ClipboardList } from 'lucide-react'
@@ -12,7 +12,7 @@ export default function NovoItem() {
     const [saving, setSaving] = useState(false)
     const [form, setForm] = useState({
         produto: '',
-        os: '', // Novo campo OS
+        os: '',
         obs: '',
         valor: '',
         quantidade: '1',
@@ -24,17 +24,19 @@ export default function NovoItem() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        // Apenas produto e data são essenciais agora
         if (!form.produto || !form.dataCompra) return
 
         setSaving(true)
 
+        // Captura os dados do usuário para o log
+        const usuarioAtual = auth.currentUser?.email || 'Usuário Desconhecido'
+        const timestampLog = new Date().toISOString()
+
         try {
             await addDoc(collection(db, 'compras'), {
                 produto: form.produto,
-                os: form.os || "", // Salva a OS (opcional)
+                os: form.os || "",
                 obs: form.obs || "",
-                // Converte para número apenas se houver valor, senão salva 0
                 valor: form.valor ? parseFloat(form.valor.replace(',', '.')) : 0,
                 quantidade: parseInt(form.quantidade) || 0,
                 dataCompra: form.dataCompra,
@@ -43,10 +45,15 @@ export default function NovoItem() {
                     ref2: form.ref2 || "",
                     ref3: form.ref3 || ""
                 },
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
+
+                // CAMPOS DE LOG (Para aparecer no monitor de atividade)
+                atualizadoPor: usuarioAtual,
+                atualizadoEm: timestampLog,
+                tipoAcao: 'CADASTRO'
             })
 
-            setTimeout(() => router.push('/dashboard'), 1000)
+            setTimeout(() => router.push('/dashboard/planilha'), 1000)
         } catch (error) {
             console.error("Erro ao salvar:", error)
             alert("Erro ao criar novo registro.")
@@ -71,7 +78,6 @@ export default function NovoItem() {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Produto e OS */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="md:col-span-2">
                                 <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">Peça / Produto</label>
@@ -96,7 +102,6 @@ export default function NovoItem() {
                             </div>
                         </div>
 
-                        {/* Quantidade, Valor e Data */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">Qtd.</label>
@@ -128,7 +133,6 @@ export default function NovoItem() {
                             </div>
                         </div>
 
-                        {/* Observações */}
                         <div>
                             <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">Observações (Opcional)</label>
                             <div className="relative">
@@ -143,7 +147,6 @@ export default function NovoItem() {
                             </div>
                         </div>
 
-                        {/* Referências */}
                         <div className="p-1 bg-[#161e2e] rounded-3xl border border-slate-800">
                             <div className="px-4 py-3 border-b border-slate-800 text-center">
                                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Referências (Opcional)</p>
@@ -158,7 +161,7 @@ export default function NovoItem() {
                         <button
                             type="submit"
                             disabled={saving}
-                            className="w-full bg-orange-600 text-white py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] hover:bg-orange-500 transition-all shadow-xl shadow-orange-900/20 flex items-center justify-center gap-3 disabled:opacity-50"
+                            className="w-full bg-orange-600 text-white py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] hover:bg-orange-500 transition-all shadow-xl shadow-orange-900/20 flex items-center justify-center gap-3 mt-4 disabled:opacity-50"
                         >
                             {saving ? <Loader2 className="animate-spin" /> : <Check size={20} />}
                             {saving ? 'Salvando...' : 'Salvar Peça no Sistema'}
