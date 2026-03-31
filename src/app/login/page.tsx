@@ -95,7 +95,7 @@ export default function LoginPage() {
 
                 <div className="mt-10 flex flex-col items-center gap-2">
                     <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
-                        Acesso Restrito: Jhonatha
+                        Acesso Restrito
                     </p>
                     <div className="h-1 w-12 bg-slate-800 rounded-full"></div>
                 </div>

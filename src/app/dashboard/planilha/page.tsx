@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { db } from '@/lib/firebase'
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc } from 'firebase/firestore'
-import { Table as TableIcon, ArrowLeft, Edit3, X, Save, Loader2, FileText, Hash, Plus, ClipboardList } from 'lucide-react'
+import { Table as TableIcon, ArrowLeft, Edit3, X, Save, Loader2, FileText, Hash, Plus, ClipboardList, Search } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
@@ -15,6 +15,7 @@ function PlanilhaContent() {
     const [loading, setLoading] = useState(true)
     const [filtroSemana, setFiltroSemana] = useState('Todas')
     const [filtroMes, setFiltroMes] = useState(mesParam !== null ? Number(mesParam) : new Date().getMonth())
+    const [busca, setBusca] = useState('') // Estado para a caixa de pesquisa
 
     const [menuAberto, setMenuAberto] = useState(false)
     const [itemEmEdicao, setItemEmEdicao] = useState<any>(null)
@@ -37,7 +38,7 @@ function PlanilhaContent() {
             produto: '',
             quantidade: 1,
             valor: 0,
-            os: '', // Novo campo OS
+            os: '',
             dataCompra: new Date().toISOString().split('T')[0],
             obs: '',
             referencias: { ref1: '', ref2: '', ref3: '' }
@@ -58,7 +59,7 @@ function PlanilhaContent() {
                 produto: itemEmEdicao.produto,
                 quantidade: Number(itemEmEdicao.quantidade) || 0,
                 valor: Number(itemEmEdicao.valor) || 0,
-                os: itemEmEdicao.os || "", // Salva a OS
+                os: itemEmEdicao.os || "",
                 dataCompra: itemEmEdicao.dataCompra,
                 obs: itemEmEdicao.obs || "",
                 referencias: itemEmEdicao.referencias || { ref1: "", ref2: "", ref3: "" }
@@ -79,11 +80,27 @@ function PlanilhaContent() {
         }
     }
 
+    // Lógica de Filtro Combinada (Mês + Semana + Pesquisa)
     const filteredItems = items.filter(item => {
         if (!item.dataCompra) return false;
+
+        // Filtro de Mês e Semana
         const dataString = item.dataCompra.includes('T') ? item.dataCompra : `${item.dataCompra}T12:00:00`;
         const data = new Date(dataString);
-        return data.getMonth() === Number(filtroMes) && (filtroSemana === 'Todas' || (data.getDate() <= 7 ? 'SEM 1' : data.getDate() <= 14 ? 'SEM 2' : data.getDate() <= 21 ? 'SEM 3' : 'SEM 4') === filtroSemana);
+        const mesBate = data.getMonth() === Number(filtroMes);
+        const semanaCalculada = data.getDate() <= 7 ? 'SEM 1' : data.getDate() <= 14 ? 'SEM 2' : data.getDate() <= 21 ? 'SEM 3' : 'SEM 4';
+        const semanaBate = filtroSemana === 'Todas' || semanaCalculada === filtroSemana;
+
+        // Filtro de Pesquisa (Texto)
+        const termo = busca.toLowerCase();
+        const pesquisaBate =
+            item.produto?.toLowerCase().includes(termo) ||
+            item.os?.toLowerCase().includes(termo) ||
+            item.referencias?.ref1?.toLowerCase().includes(termo) ||
+            item.referencias?.ref2?.toLowerCase().includes(termo) ||
+            item.referencias?.ref3?.toLowerCase().includes(termo);
+
+        return mesBate && semanaBate && pesquisaBate;
     })
 
     const totalGeral = filteredItems.reduce((acc, curr) => acc + ((Number(curr.valor) || 0) * (Number(curr.quantidade) || 0)), 0)
@@ -95,14 +112,36 @@ function PlanilhaContent() {
 
             <header className="bg-[#1e293b] border-b border-slate-800 p-4 sticky top-0 z-30 shadow-2xl">
                 <div className="max-w-full mx-auto flex flex-col xl:flex-row justify-between items-center gap-4">
-                    <div className="flex items-center justify-between w-full xl:w-auto gap-4">
-                        <div className="flex items-center gap-3">
-                            <Link href="/dashboard" className="p-2 hover:bg-slate-800 rounded-full text-orange-500"><ArrowLeft size={24} /></Link>
-                            <h1 className="text-xl font-black uppercase italic text-white tracking-tighter shrink-0">Relatório <span className="text-orange-500">GR</span></h1>
+
+                    {/* Lado Esquerdo: Logo e Barra de Busca */}
+                    <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto">
+                        <div className="flex items-center justify-between w-full md:w-auto gap-4">
+                            <div className="flex items-center gap-3">
+                                <Link href="/dashboard" className="p-2 hover:bg-slate-800 rounded-full text-orange-500"><ArrowLeft size={24} /></Link>
+                                <h1 className="text-xl font-black uppercase italic text-white tracking-tighter shrink-0">Relatório <span className="text-orange-500">GR</span></h1>
+                            </div>
+                            <button onClick={abrirNovoCadastro} className="xl:hidden bg-orange-600 p-3 rounded-xl text-white shadow-lg"><Plus size={20}/></button>
                         </div>
-                        <button onClick={abrirNovoCadastro} className="xl:hidden bg-orange-600 p-3 rounded-xl text-white shadow-lg"><Plus size={20}/></button>
+
+                        {/* CAIXA DE PESQUISA */}
+                        <div className="relative w-full md:w-80 group">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-orange-500 transition-colors" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Buscar peça, OS ou referência..."
+                                value={busca}
+                                onChange={(e) => setBusca(e.target.value)}
+                                className="w-full bg-[#0f172a] border border-slate-700 pl-12 pr-4 py-2.5 rounded-xl outline-none focus:border-orange-500 transition-all text-sm font-medium"
+                            />
+                            {busca && (
+                                <button onClick={() => setBusca('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                                    <X size={16} />
+                                </button>
+                            )}
+                        </div>
                     </div>
 
+                    {/* Lado Direito: Filtros e Totais */}
                     <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-center xl:justify-end">
                         <select className="bg-[#0f172a] border border-slate-700 p-2.5 rounded-xl outline-none font-bold text-sm" value={filtroMes} onChange={(e) => setFiltroMes(Number(e.target.value))}>
                             {meses.map((mes, idx) => <option key={mes} value={idx}>{mes}</option>)}
@@ -112,7 +151,7 @@ function PlanilhaContent() {
                             <option value="SEM 1">SEM 1</option><option value="SEM 2">SEM 2</option><option value="SEM 3">SEM 3</option><option value="SEM 4">SEM 4</option>
                         </select>
                         <div className="bg-orange-600/10 border border-orange-500/20 px-4 py-2 rounded-xl min-w-[140px] text-center">
-                            <p className="text-[9px] font-black uppercase text-orange-500">Total Período</p>
+                            <p className="text-[9px] font-black uppercase text-orange-500">Total Filtrado</p>
                             <p className="text-base font-mono font-black text-white italic">R$ {totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                         </div>
                         <button onClick={abrirNovoCadastro} className="hidden xl:flex items-center gap-2 bg-orange-600 hover:bg-orange-500 px-5 py-2.5 rounded-xl text-white font-black uppercase text-xs shadow-lg">
@@ -128,7 +167,7 @@ function PlanilhaContent() {
                         <thead className="sticky top-0 z-10 bg-slate-900 shadow-sm">
                         <tr className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] border-b border-slate-800">
                             <th className="p-4 w-20">SEM</th>
-                            <th className="p-4 w-32">OS</th> {/* Nova Coluna OS */}
+                            <th className="p-4 w-32">OS</th>
                             <th className="p-4 text-left">Peça / Data</th>
                             <th className="p-4">REF 1</th>
                             <th className="p-4">REF 2</th>
@@ -141,7 +180,7 @@ function PlanilhaContent() {
                         </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/50">
-                        {filteredItems.map((item) => {
+                        {filteredItems.length > 0 ? filteredItems.map((item) => {
                             const dataObj = new Date(`${item.dataCompra}T12:00:00`);
                             const dia = dataObj.getDate();
                             const semana = dia <= 7 ? 'SEM 1' : dia <= 14 ? 'SEM 2' : dia <= 21 ? 'SEM 3' : 'SEM 4';
@@ -169,12 +208,19 @@ function PlanilhaContent() {
                                     </td>
                                 </tr>
                             )
-                        })}
+                        }) : (
+                            <tr>
+                                <td colSpan={11} className="p-20 text-center text-slate-500 uppercase font-black tracking-widest opacity-50">
+                                    Nenhum item encontrado...
+                                </td>
+                            </tr>
+                        )}
                         </tbody>
                     </table>
                 </div>
             </main>
 
+            {/* Menu Lateral (Mesmo código anterior) */}
             {menuAberto && itemEmEdicao && (
                 <div className="fixed inset-0 z-50 flex justify-end">
                     <div className="absolute inset-0 bg-[#0f172a]/80 backdrop-blur-sm" onClick={() => setMenuAberto(false)} />
@@ -187,7 +233,7 @@ function PlanilhaContent() {
                         <form onSubmit={handleSalvar} className="space-y-4 text-sm">
                             <div className="bg-[#0f172a] p-3 rounded-xl border border-slate-800">
                                 <label className="text-[9px] font-black text-slate-500 uppercase block mb-1 tracking-widest">Peça / Produto</label>
-                                <input required type="text" value={itemEmEdicao.produto} onChange={(e) => setItemEmEdicao({...itemEmEdicao, produto: e.target.value})} className="w-full bg-transparent text-white font-bold outline-none" />
+                                <input required type="text" value={itemEmEmEdicao.produto} onChange={(e) => setItemEmEdicao({...itemEmEdicao, produto: e.target.value})} className="w-full bg-transparent text-white font-bold outline-none" />
                             </div>
 
                             <div className="bg-[#0f172a] p-3 rounded-xl border border-blue-900/30">
