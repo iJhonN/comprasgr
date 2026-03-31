@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { db, auth } from '@/lib/firebase'
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore'
-import { Table as TableIcon, ArrowLeft, Edit3, X, Save, Loader2, FileText, Hash, Plus, ClipboardList, Search, Trash2 } from 'lucide-react'
+import { Table as TableIcon, ArrowLeft, Edit3, X, Save, Loader2, FileText, Hash, Plus, ClipboardList, Search, Trash2, CheckCircle2, Clock, ShoppingCart, PackageCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
@@ -23,6 +23,14 @@ function PlanilhaContent() {
 
     const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
 
+    // Configuração de Estilo por Status
+    const statusConfig: any = {
+        'Aguardando': { color: 'text-amber-500', bg: 'bg-amber-500/10', icon: <Clock size={14} /> },
+        'Comprado': { color: 'text-blue-500', bg: 'bg-blue-500/10', icon: <ShoppingCart size={14} /> },
+        'Entregue': { color: 'text-purple-500', bg: 'bg-purple-500/10', icon: <PackageCheck size={14} /> },
+        'Concluído': { color: 'text-emerald-500', bg: 'bg-emerald-500/10', icon: <CheckCircle2 size={14} /> }
+    }
+
     useEffect(() => {
         const q = query(collection(db, 'compras'), orderBy('dataCompra', 'desc'))
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -39,6 +47,7 @@ function PlanilhaContent() {
             quantidade: 1,
             valor: 0,
             os: '',
+            status: 'Aguardando',
             dataCompra: new Date().toISOString().split('T')[0],
             obs: '',
             referencias: { ref1: '', ref2: '', ref3: '' }
@@ -47,7 +56,10 @@ function PlanilhaContent() {
     }
 
     const abrirEdicao = (item: any) => {
-        setItemEmEdicao(item)
+        setItemEmEdicao({
+            ...item,
+            status: item.status || 'Aguardando' // Fallback para itens antigos
+        })
         setMenuAberto(true)
     }
 
@@ -64,6 +76,7 @@ function PlanilhaContent() {
                 quantidade: Number(itemEmEdicao.quantidade) || 0,
                 valor: Number(itemEmEdicao.valor) || 0,
                 os: itemEmEdicao.os || "",
+                status: itemEmEdicao.status || 'Aguardando',
                 dataCompra: itemEmEdicao.dataCompra,
                 obs: itemEmEdicao.obs || "",
                 referencias: itemEmEdicao.referencias || { ref1: "", ref2: "", ref3: "" },
@@ -88,12 +101,9 @@ function PlanilhaContent() {
         }
     }
 
-    // NOVA FUNÇÃO PARA EXCLUIR
     const handleExcluir = async () => {
         if (!itemEmEdicao.id) return;
-
-        const confirmar = confirm(`Tem certeza que deseja excluir "${itemEmEdicao.produto}"? Esta ação não pode ser desfeita.`);
-
+        const confirmar = confirm(`Tem certeza que deseja excluir "${itemEmEdicao.produto}"?`);
         if (confirmar) {
             setSalvando(true);
             try {
@@ -101,7 +111,6 @@ function PlanilhaContent() {
                 setMenuAberto(false);
                 setItemEmEdicao(null);
             } catch (error) {
-                console.error("Erro ao excluir:", error);
                 alert("Erro ao excluir item.");
             } finally {
                 setSalvando(false);
@@ -134,6 +143,7 @@ function PlanilhaContent() {
     return (
         <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans relative overflow-x-hidden flex flex-col">
             <header className="bg-[#1e293b] border-b border-slate-800 p-4 sticky top-0 z-30 shadow-2xl">
+                {/* ... Header idêntico ao seu ... */}
                 <div className="max-w-full mx-auto flex flex-col xl:flex-row justify-between items-center gap-4">
                     <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto">
                         <div className="flex items-center justify-between w-full md:w-auto gap-4">
@@ -172,6 +182,7 @@ function PlanilhaContent() {
                         <thead className="sticky top-0 z-10 bg-slate-900 shadow-sm">
                         <tr className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] border-b border-slate-800">
                             <th className="p-4 w-20">SEM</th>
+                            <th className="p-4 w-32">Status</th>
                             <th className="p-4 w-32">OS</th>
                             <th className="p-4 text-left">Peça / Data</th>
                             <th className="p-4">REF 1</th>
@@ -189,12 +200,23 @@ function PlanilhaContent() {
                             const dataObj = new Date(`${item.dataCompra}T12:00:00`);
                             const dia = dataObj.getDate();
                             const semana = dia <= 7 ? 'SEM 1' : dia <= 14 ? 'SEM 2' : dia <= 21 ? 'SEM 3' : 'SEM 4';
+                            const currentStatus = item.status || 'Aguardando';
+
                             return (
                                 <tr key={item.id} className="hover:bg-orange-500/[0.03] transition-colors group">
                                     <td className="p-4 font-bold text-slate-600">{semana}</td>
+                                    {/* COLUNA STATUS DINÂMICA */}
+                                    <td className="p-4">
+                                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${statusConfig[currentStatus].bg} ${statusConfig[currentStatus].color}`}>
+                                            {statusConfig[currentStatus].icon}
+                                            {currentStatus}
+                                        </div>
+                                    </td>
                                     <td className="p-4 font-mono font-bold text-blue-400 bg-blue-500/5">{item.os || '-'}</td>
                                     <td className="p-4 text-left">
-                                        <div className="font-black text-white uppercase leading-tight">{item.produto}</div>
+                                        <div className={`font-black uppercase leading-tight transition-colors ${currentStatus === 'Concluído' ? 'text-slate-500' : 'text-white'}`}>
+                                            {item.produto}
+                                        </div>
                                         <div className="text-[9px] text-slate-500 font-mono mt-0.5">{dataObj.toLocaleDateString('pt-BR')}</div>
                                     </td>
                                     <td className="p-4 font-mono text-[10px] text-slate-400">{item.referencias?.ref1 || '-'}</td>
@@ -220,21 +242,33 @@ function PlanilhaContent() {
                         <div className="flex justify-between items-center mb-8">
                             <div className="flex items-center gap-3">
                                 <h2 className="text-xl font-black uppercase italic text-white">{itemEmEdicao.id ? 'Ajustar Peça' : 'Nova Compra'}</h2>
-                                {/* BOTÃO EXCLUIR (Só aparece se for edição) */}
                                 {itemEmEdicao.id && (
-                                    <button
-                                        type="button"
-                                        onClick={handleExcluir}
-                                        className="p-2 text-slate-500 hover:text-red-500 transition-colors"
-                                        title="Excluir item"
-                                    >
-                                        <Trash2 size={20} />
-                                    </button>
+                                    <button type="button" onClick={handleExcluir} className="p-2 text-slate-500 hover:text-red-500 transition-colors"><Trash2 size={20} /></button>
                                 )}
                             </div>
                             <button onClick={() => setMenuAberto(false)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400"><X /></button>
                         </div>
+
                         <form onSubmit={handleSalvar} className="space-y-4 text-sm">
+                            {/* SELETOR DE STATUS */}
+                            <div className="bg-[#0f172a] p-1.5 rounded-2xl border border-slate-800 grid grid-cols-2 gap-1.5">
+                                {Object.keys(statusConfig).map((status) => (
+                                    <button
+                                        key={status}
+                                        type="button"
+                                        onClick={() => setItemEmEdicao({...itemEmEdicao, status})}
+                                        className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all border ${
+                                            itemEmEdicao.status === status
+                                                ? `${statusConfig[status].bg} ${statusConfig[status].color} border-current ring-2 ring-current/20`
+                                                : 'bg-transparent text-slate-600 border-transparent hover:bg-white/5'
+                                        }`}
+                                    >
+                                        {statusConfig[status].icon}
+                                        {status}
+                                    </button>
+                                ))}
+                            </div>
+
                             <div className="bg-[#0f172a] p-3 rounded-xl border border-slate-800">
                                 <label className="text-[9px] font-black text-slate-500 uppercase block mb-1 tracking-widest">Peça / Produto</label>
                                 <input required type="text" value={itemEmEdicao.produto} onChange={(e) => setItemEmEdicao({...itemEmEdicao, produto: e.target.value})} className="w-full bg-transparent text-white font-bold outline-none" />
