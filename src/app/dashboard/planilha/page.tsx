@@ -97,9 +97,10 @@ function PlanilhaContent() {
         }
     }
 
+    // CORREÇÃO AQUI (Linha 102):
     const handleExcluir = async () => {
         if (!itemEmEdicao.id) return;
-        const confirmar = confirm(`Tem certeza que deseja excluir "${itemEmEmEdicao.produto}"?`);
+        const confirmar = confirm(`Tem certeza que deseja excluir "${itemEmEdicao.produto}"?`);
         if (confirmar) {
             setSalvando(true);
             try {
