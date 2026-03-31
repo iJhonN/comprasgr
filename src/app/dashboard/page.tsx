@@ -13,7 +13,8 @@ import {
     Table as TableIcon,
     Calendar,
     ArrowRight,
-    TrendingUp
+    TrendingUp,
+    History // Novo ícone para os Logs
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -39,7 +40,6 @@ export default function Dashboard() {
         return () => unsubscribe()
     }, [router])
 
-    // Busca estatísticas rápidas para o topo do dashboard
     useEffect(() => {
         if (!user) return
         const q = query(collection(db, 'compras'))
@@ -47,7 +47,7 @@ export default function Dashboard() {
             let total = 0
             snapshot.docs.forEach(doc => {
                 const data = doc.data()
-                total += (data.valor || 0) * (data.quantidade || 1)
+                total += (Number(data.valor) || 0) * (Number(data.quantidade) || 1)
             })
             setStats({ totalGeral: total, totalItens: snapshot.size })
             setLoading(false)
@@ -75,7 +75,7 @@ export default function Dashboard() {
                         <div className="bg-orange-600 p-2 rounded-xl shadow-lg shadow-orange-900/20">
                             <ShoppingCart className="text-white w-6 h-6" />
                         </div>
-                        <span className="tracking-tighter">FINANCEIRO <span className="text-orange-500 not-italic">GR</span></span>
+                        <span className="tracking-tighter uppercase">FINANCEIRO <span className="text-orange-500 not-italic">GR</span></span>
                     </div>
 
                     <button onClick={handleLogout} className="bg-slate-800 p-3 rounded-2xl text-slate-400 hover:text-red-500 transition-all border border-slate-700">
@@ -86,7 +86,7 @@ export default function Dashboard() {
 
             <main className="max-w-7xl mx-auto px-4 py-10">
                 {/* Resumo Rápido */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div className="bg-[#1e293b] p-6 rounded-[2rem] border border-slate-800 shadow-xl">
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Investimento Total</p>
                         <h3 className="text-3xl font-black text-white font-mono">R$ {stats.totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
@@ -98,6 +98,19 @@ export default function Dashboard() {
                     <Link href="/dashboard/novo" className="bg-orange-600 p-6 rounded-[2rem] shadow-xl shadow-orange-900/20 flex items-center justify-center gap-4 hover:bg-orange-500 transition-all group">
                         <Plus className="text-white group-hover:scale-125 transition-transform" size={32} />
                         <span className="text-xl font-black uppercase tracking-tighter text-white">Nova Compra</span>
+                    </Link>
+                </div>
+
+                {/* BOTÃO DE LOGS (HISTÓRICO) */}
+                <div className="mb-12">
+                    <Link
+                        href="/dashboard/logs"
+                        className="bg-slate-800/30 border border-slate-800 p-4 rounded-2xl flex items-center gap-4 hover:bg-slate-800/60 transition-all group w-fit"
+                    >
+                        <div className="bg-blue-600/10 p-2 rounded-lg text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                            <History size={18} />
+                        </div>
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] group-hover:text-white">Ver Histórico de Atividade</span>
                     </Link>
                 </div>
 

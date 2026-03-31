@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
-import { db } from '@/lib/firebase'
+import { db, auth } from '@/lib/firebase' // Importamos o auth aqui
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc } from 'firebase/firestore'
 import { Table as TableIcon, ArrowLeft, Edit3, X, Save, Loader2, FileText, Hash, Plus, ClipboardList, Search } from 'lucide-react'
 import Link from 'next/link'
@@ -62,7 +62,12 @@ function PlanilhaContent() {
                 os: itemEmEdicao.os || "",
                 dataCompra: itemEmEdicao.dataCompra,
                 obs: itemEmEdicao.obs || "",
-                referencias: itemEmEdicao.referencias || { ref1: "", ref2: "", ref3: "" }
+                referencias: itemEmEdicao.referencias || { ref1: "", ref2: "", ref3: "" },
+
+                // DADOS DE LOG:
+                atualizadoPor: auth.currentUser?.email || 'Usuário Desconhecido',
+                atualizadoEm: new Date().toISOString(),
+                tipoAcao: itemEmEdicao.id ? 'EDIÇÃO' : 'CADASTRO'
             }
 
             if (itemEmEdicao.id) {
