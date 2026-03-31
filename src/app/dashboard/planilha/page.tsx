@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
-import { db, auth } from '@/lib/firebase' // Importamos o auth aqui
+import { db, auth } from '@/lib/firebase'
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc } from 'firebase/firestore'
 import { Table as TableIcon, ArrowLeft, Edit3, X, Save, Loader2, FileText, Hash, Plus, ClipboardList, Search } from 'lucide-react'
 import Link from 'next/link'
@@ -54,6 +54,11 @@ function PlanilhaContent() {
     const handleSalvar = async (e: React.FormEvent) => {
         e.preventDefault()
         setSalvando(true)
+
+        // Captura o usuário no momento exato do clique
+        const usuarioAtual = auth.currentUser?.email || 'Usuário Desconhecido';
+        const timestamp = new Date().toISOString();
+
         try {
             const payload = {
                 produto: itemEmEdicao.produto,
@@ -64,9 +69,9 @@ function PlanilhaContent() {
                 obs: itemEmEdicao.obs || "",
                 referencias: itemEmEdicao.referencias || { ref1: "", ref2: "", ref3: "" },
 
-                // DADOS DE LOG:
-                atualizadoPor: auth.currentUser?.email || 'Usuário Desconhecido',
-                atualizadoEm: new Date().toISOString(),
+                // CAMPOS DE RASTREIO (LOGS)
+                atualizadoPor: usuarioAtual,
+                atualizadoEm: timestamp,
                 tipoAcao: itemEmEdicao.id ? 'EDIÇÃO' : 'CADASTRO'
             }
 
@@ -79,6 +84,7 @@ function PlanilhaContent() {
             setMenuAberto(false)
             setItemEmEdicao(null)
         } catch (error) {
+            console.error("Erro ao salvar:", error)
             alert("Erro ao salvar operação")
         } finally {
             setSalvando(false)
